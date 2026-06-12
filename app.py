@@ -608,6 +608,28 @@ def submit_style():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/pending', methods=['GET'])
+def get_pending():
+    """
+    確定済み（submit 済み）の最新投稿データを返す。
+    サロンボード上の Tampermonkey スクリプトが自動入力に使用する。
+    """
+    try:
+        metas = sorted(UPLOAD_FOLDER.glob('*.meta.json'),
+                       key=lambda p: p.stat().st_mtime, reverse=True)
+        if not metas:
+            return jsonify({'error': '確定済みの投稿がありません。先にアプリで「この内容で投稿する」を実行してください'}), 404
+
+        meta_path = metas[0]
+        meta = json.loads(meta_path.read_text(encoding='utf-8'))
+        image_filename = meta_path.name.replace('.meta.json', '')
+        meta['image_url'] = f"/uploads/{image_filename}"
+        meta['image_filename'] = image_filename
+        return jsonify(meta)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/metadata-export', methods=['POST'])
 def export_metadata():
     """

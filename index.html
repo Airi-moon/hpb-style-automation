@@ -225,17 +225,34 @@
             </div>
         </div>
 
-        <div id="status" class="status"></div>
-
-        <!-- 手動投稿コピーパネル（送信完了後に表示） -->
-        <div id="copyPanel" class="copy-panel">
-            <h2>📋 サロンボード入力用（項目ごとにコピーできます）</h2>
-            <div id="copyRows"></div>
-            <div class="copy-actions">
-                <button type="button" id="copyAll" class="btn-copy-all">📄 全体をコピー</button>
-                <a href="https://salon.hotpepper.jp/members/" target="_blank" rel="noopener" class="btn-hpb-link">🔗 サロンボードを開く</a>
+        <!-- ========== STEP 3: 完了・HPB投稿 ========== -->
+        <div id="step3" class="hidden">
+            <div id="copyPanel" class="copy-panel" style="margin-top:0;">
+                <h2>📋 サロンボード入力用（項目ごとにコピーできます）</h2>
+                <div id="copyRows"></div>
+                <div class="copy-actions">
+                    <button type="button" id="copyAll" class="btn-copy-all">📄 全体をコピー</button>
+                </div>
+            </div>
+            <div class="button-group">
+                <a href="https://salon.hotpepper.jp/members/" target="_blank" rel="noopener"
+                   id="postToHpb" class="btn-submit"
+                   style="flex:1; text-align:center; text-decoration:none; padding:13px 18px; border-radius:8px; font-size:15px; font-weight:700;">
+                   🚀 HPBに投稿する
+                </a>
+            </div>
+            <p style="font-size:11.5px; color:#888; margin-top:8px; line-height:1.6;">
+                ボタンを押すとサロンボードが開きます。Tampermonkey の自動入力スクリプトを設定済みなら、
+                スタイル登録ページで「📥 アプリの内容を自動入力」ボタンを押すと内容と写真が自動でセットされます。
+                最後に「登録」を押せば投稿完了です。
+            </p>
+            <div class="button-group" style="margin-top:10px;">
+                <button type="button" id="backToPreview" class="btn-ghost">← 確認画面に戻る</button>
+                <button type="button" id="newPost" class="btn-ghost">＋ 新しいスタイルを投稿</button>
             </div>
         </div>
+
+        <div id="status" class="status"></div>
     </div>
 
     <script>
@@ -454,9 +471,8 @@
                     return;
                 }
                 goToStep(3);
-                showStatus(data.message, data.hpb_status === 'posted' ? 'success' : 'success');
-                // posted 以外（手動モード・自動投稿失敗）はコピー支援パネルを表示
-                if (data.hpb_status !== 'posted') renderCopyPanel(fields);
+                showStatus(data.message, 'success');
+                renderCopyPanel(fields);
             } catch (e) {
                 showStatus('エラーが発生しました: ' + e.message, 'error');
             } finally {
@@ -467,7 +483,17 @@
         document.getElementById('backToEdit').addEventListener('click', () => {
             goToStep(1);
             document.getElementById('status').style.display = 'none';
-            document.getElementById('copyPanel').style.display = 'none';
+        });
+
+        // ステップ③ → ② に戻る（プレビュー内容はそのまま保持）
+        document.getElementById('backToPreview').addEventListener('click', () => {
+            goToStep(2);
+            document.getElementById('status').style.display = 'none';
+        });
+
+        // ステップ③ → 新しい投稿を最初から
+        document.getElementById('newPost').addEventListener('click', () => {
+            document.getElementById('resetForm').click();
         });
 
         document.getElementById('resetForm').addEventListener('click', () => {
@@ -487,14 +513,14 @@
         // ============ ステップ表示切り替え ============
         function goToStep(n) {
             document.getElementById('step1').classList.toggle('hidden', n !== 1);
-            document.getElementById('step2').classList.toggle('hidden', n === 1);
-            if (n === 3) document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step2').classList.toggle('hidden', n !== 2);
+            document.getElementById('step3').classList.toggle('hidden', n !== 3);
             const ind1 = document.getElementById('stepIndicator1');
             const ind2 = document.getElementById('stepIndicator2');
             const ind3 = document.getElementById('stepIndicator3');
             ind1.className = 'step ' + (n === 1 ? 'active' : 'done');
             ind2.className = 'step ' + (n === 2 ? 'active' : n === 3 ? 'done' : '');
-            ind3.className = 'step ' + (n === 3 ? 'done' : '');
+            ind3.className = 'step ' + (n === 3 ? 'active' : '');
         }
 
         // ============ 手動投稿コピーパネル ============
