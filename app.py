@@ -17,14 +17,27 @@ CORS(app)
 
 # 設定
 BASE_DIR = Path(__file__).parent
-SERVICE_ACCOUNT_FILE = os.path.expanduser('~/Downloads/hpb-style-automation-0311880cf963.json')
 SPREADSHEET_ID = '1JwXkoU3-GrfuGmATDwtX6Tq5iRsQGM-HXyIjcEcQZZY'
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 
 # Google Sheets 初期化
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+# 環境変数から Google Service Account JSON を読み込む
+google_creds_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+if google_creds_json:
+    import io
+    from google.oauth2.service_account import Credentials
+    credentials = Credentials.from_service_account_info(
+        json.loads(google_creds_json),
+        scopes=SCOPES
+    )
+else:
+    # ローカル開発用
+    SERVICE_ACCOUNT_FILE = os.path.expanduser('~/Downloads/hpb-style-automation-0311880cf963.json')
+    credentials = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
 gspread_client = gspread.authorize(credentials)
 spreadsheet = gspread_client.open_by_key(SPREADSHEET_ID)
 
