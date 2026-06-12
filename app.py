@@ -68,6 +68,7 @@ cache = {
     'shops': None,
     'stylists': None,
     'coupons': None,
+    'salonboard': None,
     'loaded_at': 0,
 }
 
@@ -75,6 +76,7 @@ def clear_cache():
     cache['shops'] = None
     cache['stylists'] = None
     cache['coupons'] = None
+    cache['salonboard'] = None
     cache['loaded_at'] = 0
 
 def load_data():
@@ -121,6 +123,22 @@ def load_data():
                     coupons_by_shop[salon_id].append(coupon)
             cache['coupons'] = coupons_by_shop
             print(f"  ✓ {sum(len(v) for v in coupons_by_shop.values())} クーポンを読み込み")
+
+        if not cache.get('salonboard'):
+            try:
+                sb_data = spreadsheet.worksheet('SalonBoard').get_all_values()[1:]
+                cache['salonboard'] = {
+                    row[0].strip(): {
+                        'loginId': row[2].strip() if len(row) > 2 else '',
+                        'password': row[3].strip() if len(row) > 3 else '',
+                        'memo': row[4].strip() if len(row) > 4 else '',
+                    }
+                    for row in sb_data if row and row[0].strip()
+                }
+                print(f"  ✓ SalonBoard アカウント情報を読み込み（{len(cache['salonboard'])} 店舗）")
+            except Exception:
+                cache['salonboard'] = {}
+                print("  ℹ️ SalonBoard タブなし（setup_salonboard_sheet.py で作成できます）")
 
         cache['loaded_at'] = _time.time()
         return cache
@@ -519,12 +537,15 @@ def preview_style():
         style_name = analysis.get('style_name') or generate_style_name(analysis, length_jp)
         description = analysis.get('style_description') or generate_style_description(analysis, length_jp)
 
+        sb_all = data.get('salonboard') or {}
+        sb_info = sb_all.get(salon_id) or sb_all.get('*') or {}
         return jsonify({
             'filename': filename,
             'salon_id': salon_id,
             'salon_name': salon_name,
             'stylist': stylist,
             'coupon': coupon,
+            'salonboard_login_id': sb_info.get('loginId', ''),
             'ai_generated': analysis.get('ai_generated', False),
             'preview': {
                 'スタイル名': style_name,
@@ -625,6 +646,21 @@ def get_pending():
         image_filename = meta_path.name.replace('.meta.json', '')
         meta['image_url'] = f"/uploads/{image_filename}"
         meta['image_filename'] = image_filename
+
+        # 店舗に紐づくサロンボードアカウント情報を同梱
+        app_token = os.environ.get('APP_TOKEN')
+        token_ok = bool(app_token) and request.args.get('token') == app_token
+        if app_token and not token_ok:
+            return jsonify({'error': 'token が違います。Tampermonkey スクリプトの APP_TOKEN を確認してください'}), 401
+
+        data = load_data()
+        sb_all = data.get('salonboard') or {}
+        sb_info = dict(sb_all.get(meta.get('salon_id')) or sb_all.get('*') or {})
+        if not token_ok:
+            # APP_TOKEN 未設定時はパスワードを渡さない（安全側）
+            sb_info.pop('password', None)
+            sb_info['note'] = 'パスワード自動入力を使うには Render に APP_TOKEN を設定してください'
+        meta['salonboard'] = sb_info
         return jsonify(meta)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

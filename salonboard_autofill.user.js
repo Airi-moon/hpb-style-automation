@@ -14,6 +14,8 @@
 
     // ============ 設定 ============
     const API_BASE = 'https://hpb-style-automation.onrender.com';
+    // Render の環境変数 APP_TOKEN と同じ合言葉を設定（パスワード自動入力に必要）
+    const APP_TOKEN = '';
 
     // アプリの項目名 → サロンボード画面のラベル文字列（部分一致）の対応表
     // ※ 実際の画面のラベルと違っていたら、ここの右側を書き換えるだけで直せます
@@ -134,19 +136,87 @@
     }
 
     // ============ メイン処理 ============
+    function pendingUrl() {
+        return API_BASE + '/api/pending' + (APP_TOKEN ? ('?token=' + encodeURIComponent(APP_TOKEN)) : '');
+    }
+
+    // ログインページなら、対象店舗のID/パスワードを自動入力
+    function fillLogin(data, statusEl) {
+        const pw = document.querySelector('input[type=password]');
+        if (!pw) return false; // ログインページではない
+        const sb = data.salonboard || {};
+        const inputs = [...document.querySelectorAll('input[type=text], input[type=email], input:not([type])')];
+        const idInput = inputs.find(i => i.offsetParent !== null) || inputs[0];
+
+        let msg = [`🏪 対象店舗: ${data.fields?.['店舗'] || data.salon_id}`];
+        if (sb.loginId && idInput) {
+            idInput.value = sb.loginId;
+            idInput.dispatchEvent(new Event('input', { bubbles: true }));
+            msg.push('✓ ログインID: 入力済み');
+        } else if (!sb.loginId) {
+            msg.push('✗ ログインID未登録（スプレッドシートの SalonBoard タブに入力してください）');
+        }
+        if (sb.password) {
+            pw.value = sb.password;
+            pw.dispatchEvent(new Event('input', { bubbles: true }));
+            msg.push('✓ パスワード: 入力済み → ログインボタンを押してください');
+        } else if (sb.note) {
+            msg.push('ℹ️ ' + sb.note);
+        }
+        statusEl.innerHTML = msg.join('<br>');
+        return true;
+    }
+
+    // 店舗名の表記ゆれを吸収（「sand 銀座 【サンド ギンザ】」→「sand 銀座」等）
+    function normalizeShopName(name) {
+        return (name || '').replace(/【[^】]*】/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    // ログイン後の店舗選択ページ補助:
+    // 対象店舗名を含むリンク/ボタンを探してハイライト＆スクロール
+    function highlightShop(data, statusEl) {
+        const shopFull = data.fields?.['店舗'] || '';
+        const shop = normalizeShopName(shopFull);
+        if (!shop) return false;
+
+        const candidates = [...document.querySelectorAll('a, button, td, li, label, span, div')]
+            .filter(el => {
+                const t = (el.textContent || '').trim();
+                return t.length > 0 && t.length < 60 &&
+                    (t.includes(shop) || shop.includes(normalizeShopName(t)) && normalizeShopName(t).length > 3);
+            })
+            // 一番内側の要素だけ残す（親要素の重複ヒットを除外）
+            .filter((el, _, arr) => !arr.some(other => other !== el && el.contains(other)));
+
+        if (candidates.length === 0) return false;
+
+        candidates.slice(0, 3).forEach(el => {
+            el.style.outline = '4px solid #ffd400';
+            el.style.outlineOffset = '2px';
+            el.style.background = 'rgba(255, 212, 0, .25)';
+        });
+        candidates[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        statusEl.innerHTML = `🏪 対象店舗: <b>${shop}</b><br>` +
+            `✨ 画面内の店舗を黄色でハイライトしました。クリックして店舗を切り替えてください`;
+        return true;
+    }
+
     async function autofill(statusEl) {
         statusEl.textContent = '⏳ アプリからデータ取得中…';
         let data;
         try {
-            data = await fetchJson(API_BASE + '/api/pending');
+            data = await fetchJson(pendingUrl());
         } catch (e) {
             statusEl.textContent = '❌ ' + e.message;
             return;
         }
         if (data.error) { statusEl.textContent = '❌ ' + data.error; return; }
 
+        // ログインページの場合は店舗アカウントを自動入力して終了
+        if (fillLogin(data, statusEl)) return;
+
         const fields = data.fields || {};
-        const report = [];
+        const report = [`🏪 対象店舗: ${fields['店舗'] || data.salon_id}`];
 
         for (const [key, labels] of Object.entries(FIELD_LABELS)) {
             const value = fields[key];
@@ -163,8 +233,16 @@
             report.push(imgOk ? '✓ 画像: セット済み' : '✗ 画像: file入力が見つからない/セット失敗');
         }
 
-        statusEl.innerHTML = report.join('<br>') +
-            '<br><b>内容を確認して「登録」を押してください</b>';
+        const filled = report.filter(r => r.startsWith('✓')).length;
+        if (filled === 0) {
+            // スタイル登録ページではない → 店舗選択ページの可能性。店舗をハイライト
+            if (highlightShop(data, statusEl)) return;
+            statusEl.innerHTML = report.join('<br>') +
+                '<br>ℹ️ スタイル登録ページを開いてからもう一度押してください';
+        } else {
+            statusEl.innerHTML = report.join('<br>') +
+                '<br><b>内容を確認して「登録」を押してください</b>';
+        }
         console.log('[HPB自動入力] レポート:\n' + report.join('\n'));
     }
 
