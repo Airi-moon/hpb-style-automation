@@ -3,424 +3,563 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HPB スタイル自動化</title>
+    <title>HPB スタイル投稿アシスタント</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 24px 16px;
         }
-
         .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 100%;
-            padding: 40px;
+            background: white; border-radius: 14px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 680px; width: 100%; padding: 36px;
         }
+        h1 { color: #333; margin-bottom: 6px; font-size: 24px; }
+        .subtitle { color: #666; margin-bottom: 26px; font-size: 13px; }
 
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
+        .steps { display: flex; gap: 8px; margin-bottom: 26px; }
+        .step {
+            flex: 1; text-align: center; font-size: 12px; font-weight: 600;
+            color: #aaa; padding: 8px; border-bottom: 3px solid #e0e0e0;
         }
+        .step.active { color: #667eea; border-color: #667eea; }
+        .step.done { color: #11998e; border-color: #11998e; }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; font-size: 13px; }
+        select, input[type=text], textarea {
+            width: 100%; padding: 11px; border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; font-family: inherit; transition: border-color .2s; background: white;
         }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        select, input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        select:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
+        select:focus, input:focus, textarea:focus { outline: none; border-color: #667eea; }
+        select:disabled { background: #f5f5f5; cursor: not-allowed; opacity: .6; }
 
         .image-upload {
-            position: relative;
-            border: 2px dashed #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s;
+            border: 2px dashed #e0e0e0; border-radius: 8px; padding: 18px;
+            text-align: center; cursor: pointer; transition: border-color .2s;
         }
-
-        .image-upload:hover {
-            border-color: #667eea;
-        }
-
-        .image-upload input {
-            display: none;
-        }
-
-        .image-upload-label {
-            display: block;
-            cursor: pointer;
-        }
-
-        .image-upload-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
-
-        .image-info {
-            color: #666;
-            font-size: 13px;
-            margin-top: 8px;
-        }
-
-        .image-preview {
-            margin-top: 16px;
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 30px;
-        }
+        .image-upload:hover { border-color: #667eea; }
+        .image-upload input { display: none; }
+        .image-upload-label { display: block; cursor: pointer; }
+        .image-upload-icon { font-size: 30px; margin-bottom: 6px; }
+        .image-info { color: #666; font-size: 12px; margin-top: 6px; }
+        .image-preview { margin-top: 14px; max-width: 160px; max-height: 200px; border-radius: 8px; }
 
         button {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 13px 18px; border: none; border-radius: 8px;
+            font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s;
+            font-family: inherit;
         }
-
-        .btn-submit {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-submit:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-reset {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-reset:hover {
-            background: #e0e0e0;
-        }
+        button:disabled { opacity: .55; cursor: not-allowed; }
+        .button-group { display: flex; gap: 10px; margin-top: 26px; }
+        .button-group button { flex: 1; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102,126,234,.4); }
+        .btn-submit { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; }
+        .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(238,90,36,.35); }
+        .btn-ghost { background: #f0f0f0; color: #333; }
+        .btn-ghost:hover { background: #e0e0e0; }
 
         .status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            text-align: center;
-            display: none;
+            margin-top: 18px; padding: 12px; border-radius: 8px;
+            font-size: 13px; text-align: center; display: none;
         }
-
-        .status.success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            display: block;
-        }
-
-        .status.error {
-            background: #ffebee;
-            color: #c62828;
-            display: block;
-        }
-
-        .status.loading {
-            background: #e3f2fd;
-            color: #1565c0;
-            display: block;
-        }
-
+        .status.success { background: #e8f5e9; color: #2e7d32; display: block; }
+        .status.error { background: #ffebee; color: #c62828; display: block; }
+        .status.loading { background: #e3f2fd; color: #1565c0; display: block; }
         .loading-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid currentColor;
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 0.6s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
+            display: inline-block; width: 15px; height: 15px;
+            border: 2px solid currentColor; border-radius: 50%; border-top-color: transparent;
+            animation: spin .6s linear infinite; margin-right: 8px; vertical-align: middle;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        /* ===== プレビューカード（HPB掲載イメージ） ===== */
+        .hpb-card {
+            border: 1px solid #ddd; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,.08); margin-bottom: 18px;
         }
+        .hpb-card-header {
+            background: #ff6b35; color: white; padding: 9px 14px;
+            font-size: 12px; font-weight: 700; letter-spacing: .04em;
+        }
+        .hpb-card-body { display: flex; gap: 16px; padding: 16px; flex-wrap: wrap; }
+        .hpb-photo { flex: 0 0 150px; }
+        .hpb-photo img { width: 150px; height: 200px; object-fit: cover; border-radius: 6px; background: #f0f0f0; }
+        .hpb-main { flex: 1; min-width: 240px; }
+        .hpb-salon-line { font-size: 11px; color: #888; margin-bottom: 6px; }
+        .hpb-style-name-input {
+            font-size: 16px !important; font-weight: 700; color: #c0392b;
+            border: 1px dashed #ccc !important; padding: 8px !important;
+        }
+        .hpb-desc-input {
+            font-size: 12.5px !important; color: #444; line-height: 1.6;
+            border: 1px dashed #ccc !important; padding: 8px !important;
+            resize: vertical; min-height: 84px; margin-top: 8px;
+        }
+        .edit-hint { font-size: 10.5px; color: #999; margin-top: 3px; }
+        .hpb-attrs {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            padding: 0 16px 16px;
+        }
+        .hpb-attr { font-size: 11px; }
+        .hpb-attr .attr-label { color: #888; display: block; margin-bottom: 3px; font-weight: 600; }
+        .hpb-attr select { padding: 7px; font-size: 12px; border-width: 1px; }
+        .hpb-coupon {
+            margin: 0 16px 16px; padding: 10px 12px; background: #fff8f0;
+            border: 1px solid #ffd9b3; border-radius: 6px; font-size: 12px; color: #b35900;
+        }
+        .ai-badge {
+            display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px;
+            border-radius: 999px; margin-left: 8px; vertical-align: middle;
+        }
+        .ai-badge.ai { background: #ede7ff; color: #6a3fd8; }
+        .ai-badge.simple { background: #eee; color: #777; }
+
+        /* 手動投稿コピーパネル */
+        .copy-panel {
+            display: none; margin-top: 18px; border: 2px solid #11998e;
+            border-radius: 10px; padding: 18px; background: #f4fffb;
+        }
+        .copy-panel h2 { font-size: 15px; color: #11998e; margin-bottom: 10px; }
+        .copy-row {
+            display: flex; align-items: center; gap: 8px; padding: 6px 0;
+            border-bottom: 1px solid #e0f2ec; font-size: 12.5px;
+        }
+        .copy-row .key { flex: 0 0 100px; font-weight: 600; color: #333; }
+        .copy-row .val { flex: 1; color: #444; word-break: break-all; }
+        .copy-btn {
+            flex: 0 0 auto; padding: 4px 10px; font-size: 11.5px;
+            border: 1px solid #11998e; background: white; color: #11998e; border-radius: 6px;
+        }
+        .copy-btn:hover, .copy-btn.copied { background: #11998e; color: white; }
+        .copy-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        .copy-actions button, .copy-actions a {
+            flex: 1; min-width: 130px; padding: 10px; font-size: 12.5px; font-weight: 700;
+            border-radius: 8px; border: none; cursor: pointer; text-align: center;
+            text-decoration: none;
+        }
+        .btn-copy-all { background: #11998e; color: white; }
+        .btn-hpb-link { background: #ff6b6b; color: white; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎨 HPB スタイル自動化</h1>
-        <p class="subtitle">salon board に画像を自動で投稿</p>
+        <h1>🎨 HPB スタイル投稿アシスタント</h1>
+        <p class="subtitle">写真をアップロード → AIが掲載内容を生成 → 確認して投稿</p>
 
-        <form id="styleForm">
-            <!-- 店舗選択 -->
+        <div class="steps">
+            <div class="step active" id="stepIndicator1">① 写真と情報を選ぶ</div>
+            <div class="step" id="stepIndicator2">② 掲載イメージを確認</div>
+            <div class="step" id="stepIndicator3">③ 投稿</div>
+        </div>
+
+        <!-- ========== STEP 1: 入力 ========== -->
+        <div id="step1">
             <div class="form-group">
-                <label for="salon">店舗を選択 *</label>
+                <label for="salon">店舗 *</label>
                 <select id="salon" required>
                     <option value="">-- 店舗を選択してください --</option>
                 </select>
             </div>
-
-            <!-- スタイリスト選択 -->
             <div class="form-group">
-                <label for="stylist">スタイリストを選択 *</label>
+                <label for="stylist">スタイリスト *</label>
                 <select id="stylist" required disabled>
                     <option value="">-- スタイリストを選択してください --</option>
                 </select>
             </div>
-
-            <!-- クーポン選択 -->
             <div class="form-group">
-                <label for="coupon">クーポンを選択 *</label>
+                <label for="coupon">クーポン *</label>
                 <select id="coupon" required disabled>
                     <option value="">-- クーポンを選択してください --</option>
                 </select>
             </div>
-
-            <!-- 画像アップロード -->
             <div class="form-group">
-                <label>画像をアップロード *</label>
+                <label>スタイル写真 *</label>
                 <div class="image-upload" id="imageUpload">
-                    <input type="file" id="imageFile" accept="image/*" required>
+                    <input type="file" id="imageFile" accept="image/*">
                     <label for="imageFile" class="image-upload-label">
                         <div class="image-upload-icon">📸</div>
                         <div>画像をドラッグ＆ドロップ または クリック</div>
-                        <div class="image-info">PNG, JPG, GIF（最大 5MB）</div>
+                        <div class="image-info">PNG, JPG（最大 5MB）</div>
                     </label>
-                    <img id="imagePreview" class="image-preview" style="display: none;">
+                    <img id="imagePreview" class="image-preview" style="display:none;">
                 </div>
             </div>
-
-            <!-- ボタン -->
             <div class="button-group">
-                <button type="submit" class="btn-submit">投稿する</button>
-                <button type="reset" class="btn-reset">リセット</button>
+                <button type="button" id="generatePreview" class="btn-primary">掲載イメージを生成する</button>
+                <button type="button" id="resetForm" class="btn-ghost">リセット</button>
+            </div>
+        </div>
+
+        <!-- ========== STEP 2: プレビュー確認 ========== -->
+        <div id="step2" class="hidden">
+            <div class="hpb-card">
+                <div class="hpb-card-header">
+                    HPB 掲載イメージ プレビュー
+                    <span id="aiBadge" class="ai-badge ai">🤖 AI生成</span>
+                </div>
+                <div class="hpb-card-body">
+                    <div class="hpb-photo"><img id="previewPhoto" alt="スタイル写真"></div>
+                    <div class="hpb-main">
+                        <div class="hpb-salon-line" id="previewSalonLine"></div>
+                        <input type="text" id="editStyleName" class="hpb-style-name-input" maxlength="50">
+                        <div class="edit-hint">✏️ スタイル名（タップで編集できます）</div>
+                        <textarea id="editDescription" class="hpb-desc-input" maxlength="300"></textarea>
+                        <div class="edit-hint">✏️ スタイル説明（タップで編集できます）</div>
+                    </div>
+                </div>
+                <div class="hpb-attrs" id="attrGrid"></div>
+                <div class="hpb-coupon" id="previewCoupon"></div>
             </div>
 
-            <!-- ステータス -->
-            <div id="status" class="status"></div>
-        </form>
+            <div class="button-group">
+                <button type="button" id="submitStyle" class="btn-submit">✅ この内容で投稿する</button>
+                <button type="button" id="backToEdit" class="btn-ghost">← やり直す</button>
+            </div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <!-- 手動投稿コピーパネル（送信完了後に表示） -->
+        <div id="copyPanel" class="copy-panel">
+            <h2>📋 サロンボード入力用（項目ごとにコピーできます）</h2>
+            <div id="copyRows"></div>
+            <div class="copy-actions">
+                <button type="button" id="copyAll" class="btn-copy-all">📄 全体をコピー</button>
+                <a href="https://salon.hotpepper.jp/members/" target="_blank" rel="noopener" class="btn-hpb-link">🔗 サロンボードを開く</a>
+            </div>
+        </div>
     </div>
 
     <script>
-        // バックエンド API からデータを取得
-        async function loadData() {
+        // 髪の特性の選択肢（HPBの入力項目に準拠）
+        const ATTR_OPTIONS = {
+            'カテゴリ': ['レディース', 'メンズ'],
+            '長さ': ['ベリーショート', 'ショート', 'ボブ', 'ミディアム', 'セミロング', 'ロング'],
+            '髪量': ['少ない', '普通', '多い'],
+            '髪質': ['柔かい', '普通', '硬い'],
+            '太さ': ['細い', '普通', '太い'],
+            'クセ': ['なし', '弱い', '強い'],
+            '顔型': ['丸型', '卵型', 'ベース型', '逆三角', '面長'],
+            '推定年代': ['10代', '20代', '30代', '40代', '50代以上'],
+        };
+
+        let currentPreview = null; // /api/preview のレスポンスを保持
+
+        // ============ データ読み込み（リトライ付き） ============
+        async function loadData(retry = 0) {
+            const MAX_RETRY = 5;
             try {
-                // 店舗を取得
-                const shopsRes = await fetch('/api/shops');
-                const shops = await shopsRes.json();
-                populateSalons(shops);
-            } catch (error) {
-                showStatus('データの読み込みに失敗しました', 'error');
-                console.error(error);
+                const res = await fetch('/api/shops');
+                const shops = await safeJson(res);
+                if (!res.ok) {
+                    if (retry < MAX_RETRY) {
+                        showStatus(`<span class="loading-spinner"></span>サーバー起動中です…（${retry + 1}/${MAX_RETRY}、最大1分ほどかかります）`, 'loading');
+                        setTimeout(() => loadData(retry + 1), 8000);
+                        return;
+                    }
+                    showStatus('❌ ' + (shops.error || 'データの読み込みに失敗しました'), 'error');
+                    return;
+                }
+                const salonSelect = document.getElementById('salon');
+                shops.forEach(shop => {
+                    const o = document.createElement('option');
+                    o.value = shop.id; o.textContent = shop.name;
+                    salonSelect.appendChild(o);
+                });
+                document.getElementById('status').style.display = 'none';
+            } catch (e) {
+                if (retry < MAX_RETRY) {
+                    showStatus(`<span class="loading-spinner"></span>サーバー起動中です…（${retry + 1}/${MAX_RETRY}、最大1分ほどかかります）`, 'loading');
+                    setTimeout(() => loadData(retry + 1), 8000);
+                    return;
+                }
+                showStatus('データの読み込みに失敗しました。Render のデプロイ状況とログを確認してください', 'error');
             }
         }
 
-        // 店舗を選択肢に追加
-        function populateSalons(shops) {
-            const salonSelect = document.getElementById('salon');
-            shops.forEach(shop => {
-                const option = document.createElement('option');
-                option.value = shop.id;
-                option.textContent = shop.name;
-                salonSelect.appendChild(option);
-            });
-        }
-
-        // 店舗選択時
-        document.getElementById('salon').addEventListener('change', async function() {
+        document.getElementById('salon').addEventListener('change', async function () {
             const salonId = this.value;
             const stylistSelect = document.getElementById('stylist');
             const couponSelect = document.getElementById('coupon');
-
             stylistSelect.innerHTML = '<option value="">-- スタイリストを選択してください --</option>';
             couponSelect.innerHTML = '<option value="">-- クーポンを選択してください --</option>';
-
-            if (salonId) {
-                try {
-                    // スタイリストを取得
-                    const stylistRes = await fetch(`/api/stylists/${salonId}`);
-                    const stylists = await stylistRes.json();
-                    stylists.forEach(stylist => {
-                        const option = document.createElement('option');
-                        option.value = stylist;
-                        option.textContent = stylist;
-                        stylistSelect.appendChild(option);
-                    });
-                    stylistSelect.disabled = false;
-
-                    // クーポンも同時に取得
-                    const couponRes = await fetch(`/api/coupons/${salonId}`);
-                    const coupons = await couponRes.json();
-                    coupons.forEach(coupon => {
-                        const option = document.createElement('option');
-                        option.value = coupon;
-                        option.textContent = coupon;
-                        couponSelect.appendChild(option);
-                    });
-                    couponSelect.disabled = false;
-
-                } catch (error) {
-                    console.error('データ取得エラー:', error);
-                    stylistSelect.disabled = true;
-                    couponSelect.disabled = true;
-                }
-            } else {
-                stylistSelect.disabled = true;
-                couponSelect.disabled = true;
+            if (!salonId) { stylistSelect.disabled = true; couponSelect.disabled = true; return; }
+            try {
+                const [stylists, coupons] = await Promise.all([
+                    fetch(`/api/stylists/${salonId}`).then(safeJson),
+                    fetch(`/api/coupons/${salonId}`).then(safeJson),
+                ]);
+                (Array.isArray(stylists) ? stylists : []).forEach(s => {
+                    const o = document.createElement('option'); o.value = s; o.textContent = s;
+                    stylistSelect.appendChild(o);
+                });
+                (Array.isArray(coupons) ? coupons : []).forEach(c => {
+                    const o = document.createElement('option'); o.value = c; o.textContent = c;
+                    couponSelect.appendChild(o);
+                });
+                stylistSelect.disabled = false; couponSelect.disabled = false;
+            } catch (e) {
+                stylistSelect.disabled = true; couponSelect.disabled = true;
             }
         });
 
-        // スタイリスト選択時は何もしない（クーポンはすでに表示されている）
-        document.getElementById('stylist').addEventListener('change', function() {
-            // スタイリストは選択されたが、クーポンは店舗に紐付いているため
-            // ここでは何もしない
-        });
-
-        // 画像プレビュー
-        document.getElementById('imageFile').addEventListener('change', function(e) {
+        // ============ 画像プレビュー / ドラッグ&ドロップ ============
+        document.getElementById('imageFile').addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    const preview = document.getElementById('imagePreview');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
+                reader.onload = ev => {
+                    const p = document.getElementById('imagePreview');
+                    p.src = ev.target.result; p.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
             }
         });
-
-        // ドラッグ＆ドロップ
         const imageUpload = document.getElementById('imageUpload');
-        imageUpload.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            imageUpload.style.borderColor = '#667eea';
-            imageUpload.style.backgroundColor = '#f5f5ff';
-        });
-        imageUpload.addEventListener('dragleave', () => {
-            imageUpload.style.borderColor = '#e0e0e0';
-            imageUpload.style.backgroundColor = 'white';
-        });
-        imageUpload.addEventListener('drop', (e) => {
-            e.preventDefault();
-            imageUpload.style.borderColor = '#e0e0e0';
-            imageUpload.style.backgroundColor = 'white';
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                document.getElementById('imageFile').files = files;
-                const event = new Event('change', { bubbles: true });
-                document.getElementById('imageFile').dispatchEvent(event);
+        imageUpload.addEventListener('dragover', e => { e.preventDefault(); imageUpload.style.borderColor = '#667eea'; });
+        imageUpload.addEventListener('dragleave', () => { imageUpload.style.borderColor = '#e0e0e0'; });
+        imageUpload.addEventListener('drop', e => {
+            e.preventDefault(); imageUpload.style.borderColor = '#e0e0e0';
+            if (e.dataTransfer.files.length > 0) {
+                document.getElementById('imageFile').files = e.dataTransfer.files;
+                document.getElementById('imageFile').dispatchEvent(new Event('change', { bubbles: true }));
             }
         });
 
-        // フォーム送信
-        document.getElementById('styleForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
+        // ============ STEP1 → プレビュー生成 ============
+        document.getElementById('generatePreview').addEventListener('click', async function () {
             const salonId = document.getElementById('salon').value;
             const stylist = document.getElementById('stylist').value;
             const coupon = document.getElementById('coupon').value;
             const imageFile = document.getElementById('imageFile').files[0];
 
             if (!salonId || !stylist || !coupon || !imageFile) {
-                showStatus('全てのフィールドを入力してください', 'error');
+                showStatus('店舗・スタイリスト・クーポン・写真をすべて選択してください', 'error');
                 return;
             }
-
-            showStatus('<span class="loading-spinner"></span>処理中...', 'loading');
+            this.disabled = true;
+            showStatus('<span class="loading-spinner"></span>AIが写真を分析して掲載内容を作成中…（10〜20秒）', 'loading');
 
             try {
-                const formData = new FormData();
-                formData.append('salonId', salonId);
-                formData.append('stylist', stylist);
-                formData.append('coupon', coupon);
-                formData.append('image', imageFile);
-
-                const response = await fetch('/api/upload', { method: 'POST', body: formData });
-                const result = await response.json();
-
-                if (response.ok) {
-                    showStatus('✅ 投稿が送信されました！', 'success');
-                    document.getElementById('styleForm').reset();
-                    document.getElementById('imagePreview').style.display = 'none';
-                    document.getElementById('stylist').disabled = true;
-                    document.getElementById('coupon').disabled = true;
-                } else {
-                    showStatus('❌ ' + result.error, 'error');
+                const fd = new FormData();
+                fd.append('salonId', salonId);
+                fd.append('stylist', stylist);
+                fd.append('coupon', coupon);
+                fd.append('image', imageFile);
+                const res = await fetch('/api/preview', { method: 'POST', body: fd });
+                const data = await safeJson(res);
+                if (!res.ok) {
+                    showStatus('❌ ' + (data.error || 'プレビュー生成に失敗しました'), 'error');
+                    return;
                 }
-            } catch (error) {
-                showStatus('エラーが発生しました: ' + error.message, 'error');
-                console.error(error);
+                currentPreview = data;
+                renderPreview(data);
+                goToStep(2);
+                document.getElementById('status').style.display = 'none';
+            } catch (e) {
+                showStatus('エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                this.disabled = false;
             }
         });
 
-        // ステータス表示
+        function renderPreview(data) {
+            // 写真（ローカルのファイルをそのまま表示）
+            const file = document.getElementById('imageFile').files[0];
+            if (file) document.getElementById('previewPhoto').src = URL.createObjectURL(file);
+
+            document.getElementById('previewSalonLine').textContent =
+                `${data.salon_name} ｜ 担当: ${data.stylist}`;
+            document.getElementById('editStyleName').value = data.preview['スタイル名'] || '';
+            document.getElementById('editDescription').value = data.preview['スタイル説明'] || '';
+            document.getElementById('previewCoupon').textContent = '🎟️ 対象クーポン: ' + data.coupon;
+
+            const badge = document.getElementById('aiBadge');
+            if (data.ai_generated) {
+                badge.textContent = '🤖 AI生成'; badge.className = 'ai-badge ai';
+            } else {
+                badge.textContent = '簡易分析'; badge.className = 'ai-badge simple';
+            }
+
+            // 髪の特性グリッド（編集可能なセレクト）
+            const grid = document.getElementById('attrGrid');
+            grid.innerHTML = '';
+            Object.entries(ATTR_OPTIONS).forEach(([key, options]) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'hpb-attr';
+                const label = document.createElement('span');
+                label.className = 'attr-label'; label.textContent = key;
+                const sel = document.createElement('select');
+                sel.dataset.attrKey = key;
+                options.forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt; o.textContent = opt;
+                    sel.appendChild(o);
+                });
+                const current = data.preview[key];
+                if (current && options.includes(current)) sel.value = current;
+                wrap.appendChild(label); wrap.appendChild(sel);
+                grid.appendChild(wrap);
+            });
+        }
+
+        // 確認画面で編集された最終フィールドを収集
+        function collectFields() {
+            const fields = {
+                '店舗': currentPreview.salon_name,
+                'スタイリスト名': currentPreview.stylist,
+                'スタイル名': document.getElementById('editStyleName').value.trim(),
+                'スタイル説明': document.getElementById('editDescription').value.trim(),
+                'クーポン': currentPreview.coupon,
+            };
+            document.querySelectorAll('#attrGrid select').forEach(sel => {
+                fields[sel.dataset.attrKey] = sel.value;
+            });
+            return fields;
+        }
+
+        // ============ STEP2 → 投稿 ============
+        document.getElementById('submitStyle').addEventListener('click', async function () {
+            if (!currentPreview) return;
+            const fields = collectFields();
+            if (!fields['スタイル名']) {
+                showStatus('スタイル名を入力してください', 'error');
+                return;
+            }
+            this.disabled = true;
+            showStatus('<span class="loading-spinner"></span>投稿処理中…', 'loading');
+            try {
+                const res = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        salonId: currentPreview.salon_id,
+                        stylist: currentPreview.stylist,
+                        coupon: currentPreview.coupon,
+                        filename: currentPreview.filename,
+                        fields: fields,
+                    }),
+                });
+                const data = await safeJson(res);
+                if (!res.ok || !data.success) {
+                    showStatus('❌ ' + (data.error || '投稿に失敗しました'), 'error');
+                    return;
+                }
+                goToStep(3);
+                showStatus(data.message, data.hpb_status === 'posted' ? 'success' : 'success');
+                // posted 以外（手動モード・自動投稿失敗）はコピー支援パネルを表示
+                if (data.hpb_status !== 'posted') renderCopyPanel(fields);
+            } catch (e) {
+                showStatus('エラーが発生しました: ' + e.message, 'error');
+            } finally {
+                this.disabled = false;
+            }
+        });
+
+        document.getElementById('backToEdit').addEventListener('click', () => {
+            goToStep(1);
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('copyPanel').style.display = 'none';
+        });
+
+        document.getElementById('resetForm').addEventListener('click', () => {
+            document.getElementById('salon').value = '';
+            document.getElementById('stylist').innerHTML = '<option value="">-- スタイリストを選択してください --</option>';
+            document.getElementById('coupon').innerHTML = '<option value="">-- クーポンを選択してください --</option>';
+            document.getElementById('stylist').disabled = true;
+            document.getElementById('coupon').disabled = true;
+            document.getElementById('imageFile').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
+            document.getElementById('copyPanel').style.display = 'none';
+            currentPreview = null;
+            goToStep(1);
+        });
+
+        // ============ ステップ表示切り替え ============
+        function goToStep(n) {
+            document.getElementById('step1').classList.toggle('hidden', n !== 1);
+            document.getElementById('step2').classList.toggle('hidden', n === 1);
+            if (n === 3) document.getElementById('step2').classList.add('hidden');
+            const ind1 = document.getElementById('stepIndicator1');
+            const ind2 = document.getElementById('stepIndicator2');
+            const ind3 = document.getElementById('stepIndicator3');
+            ind1.className = 'step ' + (n === 1 ? 'active' : 'done');
+            ind2.className = 'step ' + (n === 2 ? 'active' : n === 3 ? 'done' : '');
+            ind3.className = 'step ' + (n === 3 ? 'done' : '');
+        }
+
+        // ============ 手動投稿コピーパネル ============
+        function renderCopyPanel(fields) {
+            const rows = document.getElementById('copyRows');
+            rows.innerHTML = '';
+            Object.entries(fields).forEach(([key, val]) => {
+                const row = document.createElement('div'); row.className = 'copy-row';
+                const k = document.createElement('span'); k.className = 'key'; k.textContent = key;
+                const v = document.createElement('span'); v.className = 'val'; v.textContent = val;
+                const btn = document.createElement('button');
+                btn.type = 'button'; btn.className = 'copy-btn'; btn.textContent = 'コピー';
+                btn.addEventListener('click', async () => {
+                    await copyText(String(val));
+                    btn.textContent = '✓'; btn.classList.add('copied');
+                    setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 1500);
+                });
+                row.appendChild(k); row.appendChild(v); row.appendChild(btn);
+                rows.appendChild(row);
+            });
+            document.getElementById('copyPanel').style.display = 'block';
+            document.getElementById('copyPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        document.getElementById('copyAll').addEventListener('click', async () => {
+            const texts = [];
+            document.querySelectorAll('#copyRows .copy-row').forEach(row => {
+                texts.push(row.querySelector('.key').textContent + ': ' + row.querySelector('.val').textContent);
+            });
+            await copyText(texts.join('\n'));
+            showStatus('✅ 全項目をコピーしました（サロンボードにペーストしてください）', 'success');
+        });
+
+        // ============ ユーティリティ ============
+        async function safeJson(response) {
+            const text = await response.text();
+            try { return JSON.parse(text); }
+            catch (e) {
+                if (response.status === 404 || response.status === 405) {
+                    return { error: `API が見つかりません（${response.status}）。サーバーに最新の app.py がデプロイされているか確認してください` };
+                }
+                if (response.status >= 500) {
+                    return { error: `サーバーエラー（${response.status}）。Render のログを確認してください` };
+                }
+                return { error: `サーバーから不正な応答（${response.status}）` };
+            }
+        }
+
+        async function copyText(text) {
+            try { await navigator.clipboard.writeText(text); }
+            catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = text; document.body.appendChild(ta);
+                ta.select(); document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+        }
+
         function showStatus(message, type) {
             const status = document.getElementById('status');
             status.innerHTML = message;
             status.className = `status ${type}`;
-            if (type === 'success') {
-                setTimeout(() => status.style.display = 'none', 3000);
-            }
         }
 
-        // ページロード時にデータを取得
-        window.addEventListener('load', loadData);
+        window.addEventListener('load', () => loadData());
     </script>
 </body>
 </html>

@@ -386,6 +386,228 @@ def build_export(salon_id, salon_name, stylist, coupon, analysis):
         },
     }
 
+# ============================================================
+# AI 画像分析（Claude Vision / ANTHROPIC_API_KEY があれば使用）
+# ============================================================
+import base64
+import mimetypes
+
+AI_ANALYSIS_PROMPT = """あなたは美容室のスタイル写真を分析する専門家です。
+この髪型写真を見て、以下のJSONだけを出力してください（前置きやコードブロック記号は一切不要）:
+{
+  "hair_volume": "low|medium|high",
+  "hair_texture": "straight|wavy|coarse",
+  "hair_thickness": "thin|medium|thick",
+  "hair_curl": "none|weak|strong",
+  "estimated_age": "10s|20s|30s|40s|50s",
+  "face_shape": "oval|round|square|long|triangle",
+  "color_tone": "black|brown|beige|ash|blonde",
+  "length": "very_short|short|bob|medium|semi_long|long",
+  "hair_angle": "front|side|back",
+  "style_name": "ホットペッパービューティーに載せる魅力的なスタイル名（25文字以内、日本語）",
+  "style_description": "HPBのスタイル紹介文（80〜120文字、日本語。骨格や髪質への似合わせ、お手入れのしやすさなどに触れ、お客様に響く文章）"
+}"""
+
+
+def analyze_with_ai(filepath: str) -> dict | None:
+    """Claude Vision で画像を分析。APIキー未設定や失敗時は None を返す"""
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        return None
+    try:
+        import requests as _requests
+        media_type = mimetypes.guess_type(str(filepath))[0] or 'image/jpeg'
+        with open(filepath, 'rb') as f:
+            image_b64 = base64.standard_b64encode(f.read()).decode()
+
+        res = _requests.post(
+            'https://api.anthropic.com/v1/messages',
+            headers={
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+            },
+            json={
+                'model': 'claude-sonnet-4-6',
+                'max_tokens': 1000,
+                'messages': [{
+                    'role': 'user',
+                    'content': [
+                        {'type': 'image',
+                         'source': {'type': 'base64', 'media_type': media_type, 'data': image_b64}},
+                        {'type': 'text', 'text': AI_ANALYSIS_PROMPT},
+                    ],
+                }],
+            },
+            timeout=60,
+        )
+        res.raise_for_status()
+        text = ''.join(b.get('text', '') for b in res.json().get('content', []))
+        text = text.replace('```json', '').replace('```', '').strip()
+        result = json.loads(text)
+        result['ai_generated'] = True
+        print("🤖 AI 分析成功")
+        return result
+    except Exception as e:
+        print(f"⚠️ AI 分析失敗（簡易分析にフォールバック）: {e}")
+        return None
+
+
+def generate_style_description(analysis, length_jp):
+    """ヒューリスティックな紹介文生成（AI未使用時のフォールバック）"""
+    texture = jp('hair_texture', analysis.get('hair_texture'))
+    tone = jp('color_tone', analysis.get('color_tone'))
+    age = jp('estimated_age', analysis.get('estimated_age'))
+    return (f"骨格と髪質に合わせた似合わせカットで仕上げた{length_jp}スタイル。"
+            f"{tone}の色味で透明感をプラスし、{texture}めの髪質を活かして"
+            f"朝のお手入れも簡単に。{age}のお客様に人気のデザインです。")
+
+
+JP_LABELS['length'] = {
+    'very_short': 'ベリーショート', 'short': 'ショート', 'bob': 'ボブ',
+    'medium': 'ミディアム', 'semi_long': 'セミロング', 'long': 'ロング',
+}
+
+
+def run_analysis(filepath: str) -> dict:
+    """AI 分析（可能なら）→ 簡易分析フォールバックの統合分析"""
+    ai_result = analyze_with_ai(filepath)
+    if ai_result:
+        return ai_result
+    from image_analyzer import analyze_image
+    result = analyze_image(str(filepath))
+    result['ai_generated'] = False
+    return result
+
+
+def safe_filename(name: str) -> str:
+    """パストラバーサル防止"""
+    return os.path.basename(name or '')
+
+
+@app.route('/api/preview', methods=['POST'])
+def preview_style():
+    """
+    画像を分析して、HPB 掲載イメージのプレビューデータを返す
+
+    リクエスト（multipart/form-data）: salonId, stylist, coupon, image
+    """
+    try:
+        salon_id = request.form.get('salonId')
+        stylist = request.form.get('stylist')
+        coupon = request.form.get('coupon')
+        image_file = request.files.get('image')
+
+        if not all([salon_id, stylist, coupon]) or image_file is None:
+            return jsonify({'error': 'すべてのフィールドと画像が必須です'}), 400
+
+        data = load_data()
+        salon_name = (data.get('shops') or {}).get(salon_id, salon_id)
+
+        filename = f"{salon_id}_{int(_time.time())}_{safe_filename(image_file.filename)}"
+        filepath = UPLOAD_FOLDER / filename
+        image_file.save(filepath)
+
+        analysis = run_analysis(str(filepath))
+        if 'error' in analysis:
+            return jsonify({'error': analysis['error']}), 500
+
+        # 長さ: AI が返せばそれを、なければ縦横比から推測
+        length_key = analysis.get('length')
+        length_jp = jp('length', length_key) if length_key else estimate_length(analysis)
+
+        style_name = analysis.get('style_name') or generate_style_name(analysis, length_jp)
+        description = analysis.get('style_description') or generate_style_description(analysis, length_jp)
+
+        return jsonify({
+            'filename': filename,
+            'salon_id': salon_id,
+            'salon_name': salon_name,
+            'stylist': stylist,
+            'coupon': coupon,
+            'ai_generated': analysis.get('ai_generated', False),
+            'preview': {
+                'スタイル名': style_name,
+                'スタイル説明': description,
+                'カテゴリ': 'レディース',
+                '長さ': length_jp,
+                '髪量': jp('hair_volume', analysis.get('hair_volume')),
+                '髪質': jp('hair_texture', analysis.get('hair_texture')),
+                '太さ': jp('hair_thickness', analysis.get('hair_thickness')),
+                'クセ': jp('hair_curl', analysis.get('hair_curl')),
+                '顔型': jp('face_shape', analysis.get('face_shape')),
+                '推定年代': jp('estimated_age', analysis.get('estimated_age')),
+            },
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/submit', methods=['POST'])
+def submit_style():
+    """
+    確認済みの内容でスタイルを投稿する
+
+    リクエスト（JSON）: salonId, stylist, coupon, filename, fields（編集済みプレビュー内容）
+    """
+    try:
+        body = request.get_json(force=True)
+        salon_id = body.get('salonId')
+        stylist = body.get('stylist')
+        coupon = body.get('coupon')
+        filename = safe_filename(body.get('filename'))
+        fields = body.get('fields') or {}
+
+        if not all([salon_id, stylist, coupon, filename]):
+            return jsonify({'error': '必須項目が不足しています'}), 400
+
+        filepath = UPLOAD_FOLDER / filename
+        if not filepath.exists():
+            return jsonify({'error': '画像が見つかりません。もう一度プレビューからやり直してください'}), 400
+
+        # 確定メタデータを画像と並べて保存（自動投稿・記録用）
+        meta = {
+            'salon_id': salon_id, 'stylist': stylist, 'coupon': coupon,
+            'fields': fields, 'submitted_at': _time.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        meta_path = filepath.with_suffix(filepath.suffix + '.meta.json')
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding='utf-8')
+
+        # サロンボード自動投稿（hpb_config.json がある場合のみ）
+        hpb_config_file = BASE_DIR / 'hpb_config.json'
+        if hpb_config_file.exists():
+            try:
+                with open(hpb_config_file) as f:
+                    hpb_config = json.load(f)
+                from hpb_poster import HPBPoster
+                poster = HPBPoster(hpb_config['username'], hpb_config['password'])
+                try:
+                    poster.login()
+                    success = poster.post_style(salon_id, stylist, coupon, str(filepath))
+                finally:
+                    poster.close()
+                if success:
+                    return jsonify({'success': True, 'hpb_status': 'posted',
+                                    'message': '✅ サロンボードに投稿しました！'})
+                return jsonify({'success': True, 'hpb_status': 'failed',
+                                'message': '⚠️ 内容は保存しましたが、サロンボードへの自動投稿に失敗しました。下のコピー機能で手動投稿してください'})
+            except Exception as e:
+                print(f"⚠️ 自動投稿エラー: {e}")
+                return jsonify({'success': True, 'hpb_status': 'error',
+                                'message': f'⚠️ 内容は保存しました。自動投稿エラー: {e}。下のコピー機能で手動投稿してください'})
+
+        # 自動投稿未設定 → 手動投稿モード
+        return jsonify({'success': True, 'hpb_status': 'manual',
+                        'message': '✅ 内容を確定しました。下のコピー機能を使ってサロンボードに貼り付けてください'})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/metadata-export', methods=['POST'])
 def export_metadata():
     """
