@@ -1,0 +1,29 @@
+# 機密情報
+hpb_config.json
+hpb-style-automation-0311880cf963.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# アップロード画像
+uploads/
+
+# ログ
+*.log

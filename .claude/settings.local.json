@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:beauty.hotpepper.jp)",
+      "Bash(ollama pull *)",
+      "Bash(ollama serve *)",
+      "Bash(timeout 120 python3 coupon_updater.py)",
+      "Bash(python3 coupon_updater.py)",
+      "Bash(python3)",
+      "Bash(crontab /tmp/cron_temp.txt)",
+      "Bash(python3 app.py)",
+      "Bash(curl -s http://127.0.0.1:5000/api/health)",
+      "Bash(python3 populate_sheets.py)",
+      "Bash(killall python3 *)",
+      "Bash(curl -s http://127.0.0.1:5000/api/coupons/H000394957)",
+      "Bash(python3 -m json.tool)",
+      "Bash(killall -9 python3)",
+      "Bash(sleep 2)",
+      "Bash(cd \"/Users/wakatsukiairi/Downloads/07_バイト・インターン/sand/HPBスタイル自動化\")",
+      "Bash(sleep 5)",
+      "Bash(echo \"📸 テスト画像をアップロード中...\")",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
